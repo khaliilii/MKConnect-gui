@@ -1,4 +1,3 @@
-
 name: MKConnect Fyne Cross Build & Release (All OS/Arch)
 
 on:
@@ -27,7 +26,7 @@ jobs:
 
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.1
+          go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$HOME/go/bin" >> $GITHUB_PATH
 
       - name: Build Linux
@@ -55,7 +54,7 @@ jobs:
 
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.1
+          go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$HOME/go/bin" >> $GITHUB_PATH
 
       - name: Build Windows
@@ -88,8 +87,8 @@ jobs:
 
       - name: Install fyne and fyne-cross
         run: |
-          go install fyne.io/fyne/v2/cmd/fyne@v2.5.1
-          go install github.com/fyne-io/fyne-cross@v1.5.1
+          go install fyne.io/fyne/v2/cmd/fyne@v2.5.0
+          go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Debug environment
@@ -99,7 +98,7 @@ jobs:
           echo "GOPATH: $(go env GOPATH)"
           which fyne
           which fyne-cross
-          fyne-cross --version || true  # Ignore exit code to continue debugging
+          fyne-cross --version || true
           fyne --version
           ls -la .
           go version
@@ -140,7 +139,7 @@ jobs:
 
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.1
+          go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$HOME/go/bin" >> $GITHUB_PATH
 
       - name: Build FreeBSD
@@ -168,7 +167,7 @@ jobs:
 
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.1
+          go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$HOME/go/bin" >> $GITHUB_PATH
 
       - name: Set up Android SDK
@@ -210,7 +209,9 @@ jobs:
           find dist/linux-builds -type f -exec cp {} release/linux/ \;
           find dist/windows-builds -type f -exec cp {} release/windows/ \;
           find dist/macos-builds -type f -exec cp {} release/macos/ \;
-          find dist/freebsd-builds -type f -exec cp {} release/freebsd/ \;
+          find dist/freebsd-builds -type f -exec cp {} release
+
+/freebsd/ \;
           find dist/android-builds -type f -exec cp {} release/android/ \;
 
       - name: Create GitHub Release
