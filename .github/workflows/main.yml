@@ -21,6 +21,9 @@ jobs:
         with:
           go-version: "1.22"
 
+      - name: Download Go dependencies
+        run: go mod download
+
       - name: Install fyne-cross
         run: |
           go install github.com/fyne-io/fyne-cross@latest
@@ -46,6 +49,9 @@ jobs:
         with:
           go-version: "1.22"
 
+      - name: Download Go dependencies
+        run: go mod download
+
       - name: Install fyne-cross
         run: |
           go install github.com/fyne-io/fyne-cross@latest
@@ -62,17 +68,25 @@ jobs:
 
   build-macos:
     name: Build macOS
-    runs-on: macos-latest
+    runs-on: macos-13  # macos-13 برای سازگاری بهتر؛ macos-latest نیز قابل تست است
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build macOS with fyne-cross Docker
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Download Go dependencies
+        run: go mod download
+
+      - name: Install fyne-cross
         run: |
-          # The fyne-cross Docker image includes all necessary toolchains.
-          # We run fyne-cross inside the container.
-          docker run --rm -v $(pwd):/app -w /app \
-            fyneio/fyne-cross:latest \
-            fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64
+          go install github.com/fyne-io/fyne-cross@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Build macOS
+        run: fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -90,6 +104,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.22"
+
+      - name: Download Go dependencies
+        run: go mod download
 
       - name: Install fyne-cross
         run: |
@@ -115,6 +132,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.22"
+
+      - name: Download Go dependencies
+        run: go mod download
 
       - name: Install fyne-cross
         run: |
@@ -152,9 +172,16 @@ jobs:
 
       - name: Collect binaries for release
         run: |
-          mkdir -p release
-          # Find and copy all build files to a single 'release' folder
-          find dist -type f -exec cp {} release/ \;
+          mkdir -p release/linux
+          mkdir -p release/windows
+          mkdir -p release/macos
+          mkdir -p release/freebsd
+          mkdir -p release/android
+          find dist/linux-builds -type f -exec cp {} release/linux/ \;
+          find dist/windows-builds -type f -exec cp {} release/windows/ \;
+          find dist/macos-builds -type f -exec cp {} release/macos/ \;
+          find dist/freebsd-builds -type f -exec cp {} release/freebsd/ \;
+          find dist/android-builds -type f -exec cp {} release/android/ \;
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -163,7 +190,12 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             🚀 Multi-platform build from Fyne Cross
-            Includes final binaries for Linux, Windows, macOS, FreeBSD, and Android.
-          files: release/*
+            Includes final binaries for:
+            - Linux (amd64, 386, arm, arm64)
+            - Windows (amd64, 386)
+            - macOS (amd64, arm64)
+            - FreeBSD (amd64)
+            - Android (arm, arm64)
+          files: release/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
