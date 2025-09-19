@@ -1,0 +1,4 @@
+app-id: com.mkconnect.app
+release:
+  name: MKConnect
+  version: 1.0.0
