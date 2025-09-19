@@ -176,7 +176,8 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          sdk-version: "33"
+          sdk: "33"
+
 
       - name: Debug fyne-cross
         run: |
