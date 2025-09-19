@@ -80,28 +80,40 @@ jobs:
       - name: Download Go dependencies
         run: go mod download
 
+      - name: Install dependencies for CGO
+        run: |
+          brew install gcc
+          export CGO_ENABLED=1
+
       - name: Install fyne and fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@latest
           go install fyne.io/fyne/v2/cmd/fyne@latest
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Debug environment
         run: |
+          set -x
           echo "PATH: $PATH"
           echo "GOPATH: $(go env GOPATH)"
           which fyne
           which fyne-cross
           fyne-cross --version
           fyne --version
+          ls -la .
+          go version
+          xcodebuild -version
+          gcc --version
 
       - name: Set up Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-          xcodebuild -version
+          xcodebuild -sdk macosx -version
 
       - name: Build macOS
-        run: fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64
+        run: |
+          set -x
+          fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
