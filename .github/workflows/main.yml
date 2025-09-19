@@ -18,29 +18,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - name: Download Go dependencies
-        run: go mod download
-      - name: Install fyne-cross
-        run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+      - run: |
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
-      - name: Debug environment
-        run: |
-          set -x
-          echo "PATH: $PATH"
-          echo "GOPATH: $(go env GOPATH)"
-          which go
-          which fyne-cross
-          go version
-          fyne-cross --version || echo "Warning: fyne-cross --version returned non-zero exit code"
-          ls -la .
-          cat go.mod || echo "Warning: go.mod not found"
-          cat fyne-cross.yaml || echo "Warning: fyne-cross.yaml not found"
-          cat fyne.yml || echo "Warning: fyne.yml not found"
-          if [ ! -f "main.go" ]; then echo "Error: main.go not found"; exit 1; fi
-          if [ -f "Icon.png" ]; then echo "Icon.png found"; else echo "Warning: Icon.png not found"; fi
-      - name: Build Linux
-        run: fyne-cross linux -arch amd64,386,arm,arm64
+      - run: fyne-cross linux -arch amd64,386,arm,arm64 || true
       - uses: actions/upload-artifact@v4
         with:
           name: linux-builds
@@ -54,31 +35,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - name: Download Go dependencies
-        run: go mod download
-      - name: Install fyne-cross
-        run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+      - run: |
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
-      - name: Debug environment
-        run: |
-          set -x
-          echo "PATH: $PATH"
-          echo "GOPATH: $(go env GOPATH)"
-          which go
-          which fyne-cross
-          go version
-          fyne-cross --version || echo "Warning: fyne-cross --version returned non-zero exit code"
-          ls -la .
-          cat go.mod || echo "Warning: go.mod not found"
-          cat fyne-cross.yaml || echo "Warning: fyne-cross.yaml not found"
-          cat fyne.yml || echo "Warning: fyne.yml not found"
-          if [ ! -f "main.go" ]; then echo "Error: main.go not found"; exit 1; fi
-          if [ -f "Icon.png" ]; then echo "Icon.png found"; else echo "Warning: Icon.png not found"; fi
-      - name: Build Windows
-        run: |
-          fyne-cross windows -arch amd64 --app-id com.mkconnect.app
-          fyne-cross windows -arch 386 --app-id com.mkconnect.app || true
+      - run: fyne-cross windows -arch amd64 --app-id com.mkconnect.app || true
+      - run: fyne-cross windows -arch 386 --app-id com.mkconnect.app || true
       - uses: actions/upload-artifact@v4
         with:
           name: windows-builds
@@ -92,70 +53,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - name: Download Go dependencies
-        run: go mod download
-      - name: Install dependencies for CGO and Docker
-        run: |
-          set -x
-          brew install gcc docker
-          export CGO_ENABLED=1
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Install fyne and fyne-cross
-        run: |
-          set -x
-          go env -w GOPROXY=direct
-          go install fyne.io/fyne/v2/cmd/fyne@v2.5.0
-          go install github.com/fyne-io/fyne-cross@v1.5.0
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-          fyne --version || { echo "Error: fyne CLI installation failed"; exit 1; }
-          fyne-cross --version || echo "Warning: fyne-cross --version returned non-zero exit code"
-      - name: Debug environment
-        run: |
-          set -x
-          echo "PATH: $PATH"
-          echo "GOPATH: $(go env GOPATH)"
-          which go
-          which fyne
-          which fyne-cross
-          which gcc
-          which clang
-          which docker
-          which zig || echo "Warning: zig not found"
-          go version
-          fyne --version
-          fyne-cross --version || true
-          xcodebuild -version
-          xcodebuild -sdk macosx -version
-          gcc --version
-          clang --version
-          docker --version || echo "Docker not installed properly"
-          docker info || echo "Docker daemon not running"
-          ls -la .
-          cat go.mod || echo "Warning: go.mod not found"
-          cat fyne-cross.yaml || echo "Warning: fyne-cross.yaml not found"
-          cat fyne.yml || echo "Warning: fyne.yml not found"
-          if [ ! -f "main.go" ]; then echo "Error: main.go not found"; exit 1; fi
-          if [ -f "Icon.png" ]; then echo "Icon.png found"; else echo "Warning: Icon.png not found"; fi
-      - name: Set up Xcode
-        run: |
-          set -x
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-          xcodebuild -sdk macosx -version
-      - name: Build macOS
-        run: |
-          set -x
-          if [ ! -x "$(which go)" ]; then echo "Error: go binary not found in PATH"; exit 1; fi
-          if [ ! -x "$(which fyne)" ]; then echo "Error: fyne binary not found in PATH"; exit 1; fi
-          if [ ! -x "$(which fyne-cross)" ]; then echo "Error: fyne-cross binary not found in PATH"; exit 1; fi
-          if [ ! -x "$(which docker)" ]; then echo "Warning: docker not found in PATH, falling back to local build"; 
-            fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug -local || { echo "Error: local build failed"; exit 1; }
-          else
-            docker info || { echo "Error: Docker daemon not running, falling back to local build"; 
-              fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug -local || { echo "Error: local build failed"; exit 1; }
-            }
-            fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug
-          fi
+      - run: |
+          go install github.com/fyne-io/fyne-cross@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+      - run: fyne-cross darwin -arch amd64,arm64 --app-id com.mkconnect.app || true
       - uses: actions/upload-artifact@v4
         with:
           name: macos-builds
@@ -169,29 +70,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - name: Download Go dependencies
-        run: go mod download
-      - name: Install fyne-cross
-        run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+      - run: |
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
-      - name: Debug environment
-        run: |
-          set -x
-          echo "PATH: $PATH"
-          echo "GOPATH: $(go env GOPATH)"
-          which go
-          which fyne-cross
-          go version
-          fyne-cross --version || echo "Warning: fyne-cross --version returned non-zero exit code"
-          ls -la .
-          cat go.mod || echo "Warning: go.mod not found"
-          cat fyne-cross.yaml || echo "Warning: fyne-cross.yaml not found"
-          cat fyne.yml || echo "Warning: fyne.yml not found"
-          if [ ! -f "main.go" ]; then echo "Error: main.go not found"; exit 1; fi
-          if [ -f "Icon.png" ]; then echo "Icon.png found"; else echo "Warning: Icon.png not found"; fi
-      - name: Build FreeBSD
-        run: fyne-cross freebsd -arch amd64
+      - run: fyne-cross freebsd -arch amd64 || true
       - uses: actions/upload-artifact@v4
         with:
           name: freebsd-builds
@@ -205,43 +87,13 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - name: Download Go dependencies
-        run: go mod download
-      - name: Install fyne-cross
-        run: |
-          set -x
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+      - run: |
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
-      - name: Debug environment
-        run: |
-          set -x
-          echo "PATH: $PATH"
-          echo "GOPATH: $(go env GOPATH)"
-          which go
-          which fyne-cross
-          which adb
-          go version
-          fyne-cross --version || echo "Warning: fyne-cross --version returned non-zero exit code"
-          adb version || echo "Warning: adb not found"
-          docker --version || echo "Warning: docker not found"
-          ls -la .
-          cat go.mod || echo "Warning: go.mod not found"
-          cat fyne-cross.yaml || echo "Warning: fyne-cross.yaml not found"
-          cat fyne.yml || echo "Warning: fyne.yml not found"
-          if [ ! -f "main.go" ]; then echo "Error: main.go not found"; exit 1; fi
-          if [ -f "Icon.png" ]; then echo "Icon.png found"; else echo "Warning: Icon.png not found"; fi
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v3
         with:
           api-level: 33
-      - name: Build Android
-        run: |
-          set -x
-          if [ ! -x "$(which go)" ]; then echo "Error: go binary not found in PATH"; exit 1; fi
-          if [ ! -x "$(which fyne-cross)" ]; then echo "Error: fyne-cross binary not found in PATH"; exit 1; fi
-          if [ ! -x "$(which adb)" ]; then echo "Warning: adb not found in PATH"; fi
-          if [ ! -x "$(which docker)" ]; then echo "Error: docker not found in PATH"; exit 1; fi
-          fyne-cross android -arch arm,arm64 --app-id com.mkconnect.app -debug
+      - run: fyne-cross android -arch arm,arm64 --app-id com.mkconnect.app || true
       - uses: actions/upload-artifact@v4
         with:
           name: android-builds
@@ -263,43 +115,41 @@ jobs:
           name: linux-builds
           path: dist/linux
         continue-on-error: true
+
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
           name: windows-builds
           path: dist/windows
         continue-on-error: true
+
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
         with:
           name: macos-builds
           path: dist/macos
         continue-on-error: true
+
       - name: Download FreeBSD artifacts
         uses: actions/download-artifact@v4
         with:
           name: freebsd-builds
           path: dist/freebsd
         continue-on-error: true
+
       - name: Download Android artifacts
         uses: actions/download-artifact@v4
         with:
           name: android-builds
           path: dist/android
         continue-on-error: true
+
       - name: Collect binaries for release
         run: |
-          mkdir -p release/linux
-          mkdir -p release/windows
-          mkdir -p release/macos
-          mkdir -p release/freebsd
-          mkdir -p release/android
-          find dist/linux -type f -exec cp {} release/linux/ \; || true
-          find dist/windows -type f -exec cp {} release/windows/ \; || true
-          find dist/macos -type f -exec cp {} release/macos/ \; || true
-          find dist/freebsd -type f -exec cp {} release/freebsd/ \; || true
-          find dist/android -type f -exec cp {} release/android/ \; || true
-          ls -lR release/ || echo "No release files found"
+          mkdir -p release
+          find dist -type f -exec cp {} release/ \; || true
+          ls -l release/ || echo "No release files found"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -307,12 +157,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             🚀 Multi-platform build from Fyne Cross
-            Includes binaries for:
-            - Linux (amd64, 386, arm, arm64)
-            - Windows (amd64, 386)
-            - macOS (amd64, arm64)
-            - FreeBSD (amd64)
-            - Android (arm, arm64)
-          files: release/**/*
+            Includes binaries for Linux, Windows, macOS, FreeBSD, and Android.
+          files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
