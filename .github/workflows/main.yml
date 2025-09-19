@@ -1,349 +1,70 @@
-name: MKConnect Fyne Cross Build & Release (All OS/Arch)
+release:
+  name: Create Release
+  runs-on: ubuntu-latest
+  needs:
+    - build-linux
+    - build-windows
+    - build-macos
+    - build-freebsd
+    - build-android
+  steps:
+    - name: Download Linux artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: linux-builds
+        path: dist/linux
 
-on:
-  push:
-    tags:
-      - "v*"
-  workflow_dispatch:
+    - name: Download Windows artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: windows-builds
+        path: dist/windows
 
-env:
-  APP_ID: com.mkconnect.app
+    - name: Download macOS artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: macos-builds
+        path: dist/macos
 
-jobs:
-  build-linux:
-    name: Build Linux
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    - name: Download FreeBSD artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: freebsd-builds
+        path: dist/freebsd
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.22"
+    - name: Download Android artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: android-builds
+        path: dist/android
 
-      - name: Install fyne-cross
-        run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
-          echo "$HOME/go/bin" >> $GITHUB_PATH
-          echo "PATH is $PATH"
-          which fyne-cross
-          which go
+    - name: Collect binaries for release
+      run: |
+        mkdir release
+        # Linux
+        cp dist/linux/*/*.tar.xz release/ || true
+        # Windows
+        cp dist/windows/*/*.exe release/ || true
+        cp dist/windows/*/*.zip release/ || true
+        # macOS
+        cp dist/macos/*/*.tar.xz release/ || true
+        cp dist/macos/*/*.dmg release/ || true
+        # FreeBSD
+        cp dist/freebsd/*/*.tar.xz release/ || true
+        # Android
+        cp dist/android/*/*.apk release/ || true
 
-      - name: Debug fyne-cross
-        run: |
-          fyne-cross --version || echo "fyne-cross --version failed, continuing anyway"
-          echo "APP_ID is $APP_ID"
-          go version
-          go env
-        continue-on-error: true
+    - name: List release files
+      run: ls -l release/
 
-      - name: Build Linux
-        run: |
-          echo "Running: fyne-cross linux -arch amd64,386,arm,arm64"
-          fyne-cross linux -arch amd64,386,arm,arm64
-
-      - name: List Linux artifacts
-        run: |
-          echo "Listing Linux artifacts in fyne-cross/dist/:"
-          ls -R fyne-cross/dist/ || echo "No artifacts found in fyne-cross/dist/"
-        continue-on-error: true
-
-      - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-builds
-          path: fyne-cross/dist/
-        continue-on-error: true
-
-  build-windows:
-    name: Build Windows
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.22"
-
-      - name: Install fyne-cross
-        run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
-          echo "$HOME/go/bin" >> $GITHUB_PATH
-          echo "PATH is $PATH"
-          which fyne-cross
-          which go
-
-      - name: Debug fyne-cross
-        run: |
-          fyne-cross --version || echo "fyne-cross --version failed, continuing anyway"
-          echo "APP_ID is $APP_ID"
-          go version
-          go env
-        continue-on-error: true
-
-      - name: Build Windows amd64
-        run: |
-          echo "Running: fyne-cross windows -arch amd64 --app-id com.mkconnect.app"
-          fyne-cross windows -arch amd64 --app-id com.mkconnect.app
-
-      - name: Build Windows 386
-        run: |
-          echo "Running: fyne-cross windows -arch 386 --app-id com.mkconnect.app"
-          fyne-cross windows -arch 386 --app-id com.mkconnect.app
-        continue-on-error: true
-
-      - name: List Windows artifacts
-        run: |
-          echo "Listing Windows artifacts in fyne-cross/dist/:"
-          ls -R fyne-cross/dist/ || echo "No artifacts found in fyne-cross/dist/"
-        continue-on-error: true
-
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-builds
-          path: fyne-cross/dist/
-        continue-on-error: true
-
-  build-macos:
-    name: Build macOS
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.22"
-
-      - name: Select Xcode version
-        run: |
-          sudo xcode-select -s /Applications/Xcode_15.4.app || echo "Failed to select Xcode 15.4, continuing anyway"
-        continue-on-error: true
-
-      - name: Install fyne-cross
-        run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
-          echo "$HOME/go/bin" >> $GITHUB_PATH
-          echo "PATH is $PATH"
-          which fyne-cross
-          which go
-          which codesign
-        continue-on-error: true
-
-      - name: Debug fyne-cross
-        run: |
-          fyne-cross --version || echo "fyne-cross --version failed, continuing anyway"
-          echo "APP_ID is $APP_ID"
-          go version
-          go env
-          xcodebuild -version
-          ls -l /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
-          echo "Checking codesign tool:"
-          codesign --version || echo "codesign not found"
-        continue-on-error: true
-
-      - name: Build macOS
-        run: |
-          echo "Running: fyne-cross darwin -arch amd64,arm64 --app-id com.mkconnect.app"
-          fyne-cross darwin -arch amd64,arm64 --app-id com.mkconnect.app
-        continue-on-error: true
-
-      - name: List macOS artifacts
-        run: |
-          echo "Listing macOS artifacts in fyne-cross/dist/:"
-          ls -R fyne-cross/dist/ || echo "No artifacts found in fyne-cross/dist/"
-        continue-on-error: true
-
-      - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-builds
-          path: fyne-cross/dist/
-        continue-on-error: true
-
-  build-freebsd:
-    name: Build FreeBSD
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.22"
-
-      - name: Install fyne-cross
-        run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
-          echo "$HOME/go/bin" >> $GITHUB_PATH
-          echo "PATH is $PATH"
-          which fyne-cross
-          which go
-
-      - name: Debug fyne-cross
-        run: |
-          fyne-cross --version || echo "fyne-cross --version failed, continuing anyway"
-          echo "APP_ID is $APP_ID"
-          go version
-          go env
-        continue-on-error: true
-
-      - name: Build FreeBSD
-        run: |
-          echo "Running: fyne-cross freebsd -arch amd64"
-          fyne-cross freebsd -arch amd64
-        continue-on-error: true
-
-      - name: List FreeBSD artifacts
-        run: |
-          echo "Listing FreeBSD artifacts in fyne-cross/dist/:"
-          ls -R fyne-cross/dist/ || echo "No artifacts found in fyne-cross/dist/"
-        continue-on-error: true
-
-      - name: Upload FreeBSD artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: freebsd-builds
-          path: fyne-cross/dist/
-        continue-on-error: true
-
-  build-android:
-    name: Build Android
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.22"
-
-      - name: Install fyne-cross
-        run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
-          echo "$HOME/go/bin" >> $GITHUB_PATH
-          echo "PATH is $PATH"
-          which fyne-cross
-          which go
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Debug Android SDK
-        run: |
-          echo "ANDROID_HOME: $ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
-          ls -R $ANDROID_HOME
-        continue-on-error: true
-
-      - name: Debug fyne-cross
-        run: |
-          fyne-cross --version || echo "fyne-cross --version failed, continuing anyway"
-          echo "APP_ID is $APP_ID"
-          go version
-          go env
-        continue-on-error: true
-
-      - name: Build Android
-        run: |
-          echo "Running: fyne-cross android -arch arm,arm64 --app-id com.mkconnect.app"
-          fyne-cross android -arch arm,arm64 --app-id com.mkconnect.app
-        continue-on-error: true
-
-      - name: List Android artifacts
-        run: |
-          echo "Listing Android artifacts in fyne-cross/dist/:"
-          ls -R fyne-cross/dist/ || echo "No artifacts found in fyne-cross/dist/"
-        continue-on-error: true
-
-      - name: Upload Android artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-builds
-          path: fyne-cross/dist/
-        continue-on-error: true
-
-  release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    needs:
-      - build-linux
-      - build-windows
-      - build-macos
-      - build-freebsd
-      - build-android
-    steps:
-      - name: Download Linux artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: linux-builds
-          path: dist/linux
-        continue-on-error: true
-
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-builds
-          path: dist/windows
-        continue-on-error: true
-
-      - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-builds
-          path: dist/macos
-        continue-on-error: true
-
-      - name: Download FreeBSD artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: freebsd-builds
-          path: dist/freebsd
-        continue-on-error: true
-
-      - name: Download Android artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: android-builds
-          path: dist/android
-        continue-on-error: true
-
-      - name: List downloaded artifacts
-        run: |
-          echo "Listing downloaded artifacts in dist/:"
-          ls -R dist/ || echo "No artifacts found in dist/"
-        continue-on-error: true
-
-      - name: Zip builds
-        run: |
-          cd dist
-          for platform in *; do
-            if [ -d "$platform" ] && [ "$(ls -A $platform)" ]; then
-              zip -r "../MKConnect-${platform}-${{ github.ref_name }}.zip" "$platform"
-            else
-              echo "No artifacts found for platform $platform, skipping zip"
-            fi
-          done
-          cd ..
-        continue-on-error: true
-
-      - name: List zip files
-        run: |
-          echo "Listing zip files:"
-          ls -l MKConnect-*.zip || echo "No zip files found"
-        continue-on-error: true
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          body: |
-            🚀 Multi-platform build from Fyne Cross
-            Includes binaries for Linux, Windows, macOS, FreeBSD, and Android.
-          files: "MKConnect-*.zip"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        body: |
+          🚀 Multi-platform build from Fyne Cross
+          Includes final binaries for Linux, Windows, macOS, FreeBSD, and Android.
+        files: release/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
