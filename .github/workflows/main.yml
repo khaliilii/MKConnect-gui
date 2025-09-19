@@ -10,11 +10,13 @@ env:
   APP_ID: com.mkconnect.app
 
 jobs:
-  build:
+  setup:
+    name: Setup Go & fyne-cross
     runs-on: ubuntu-latest
+    outputs:
+      go-bin: ${{ steps.set-path.outputs.go-bin }}
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -22,56 +24,155 @@ jobs:
           go-version: "1.22"
 
       - name: Install fyne-cross
+        id: set-path
         run: |
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
+          echo "::set-output name=go-bin::$HOME/go/bin"
 
-      # Linux builds
+  build-linux:
+    name: Build Linux
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Build Linux
         run: fyne-cross linux -arch amd64,386,arm,arm64
-
-      # Windows builds
-      - name: Build Windows
-        run: fyne-cross windows -arch amd64,386 --app-id $APP_ID
-
-      # macOS builds
-      - name: Build macOS
-        run: fyne-cross darwin -arch amd64,arm64 --app-id $APP_ID
-
-      # FreeBSD builds
-      - name: Build FreeBSD
-        run: fyne-cross freebsd -arch amd64,386,arm,arm64
-
-      # Android builds
-      - name: Build Android
-        run: fyne-cross android -arch amd64,386,arm,arm64 --app-id $APP_ID
-
-      # iOS builds
-      - name: Build iOS
-        run: fyne-cross ios -arch amd64,arm64 --app-id $APP_ID
-
-      - name: Upload artifacts
+      - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: fyne-cross-builds
+          name: linux-builds
+          path: fyne-cross/dist/
+
+  build-windows:
+    name: Build Windows
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Windows
+        run: |
+          fyne-cross windows -arch amd64 --app-id $APP_ID
+          fyne-cross windows -arch 386 --app-id $APP_ID || true
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-builds
+          path: fyne-cross/dist/
+
+  build-macos:
+    name: Build macOS
+    needs: setup
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build macOS
+        run: fyne-cross darwin -arch amd64,arm64 --app-id $APP_ID
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-builds
+          path: fyne-cross/dist/
+
+  build-freebsd:
+    name: Build FreeBSD
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build FreeBSD
+        run: fyne-cross freebsd -arch amd64,386,arm,arm64 || true
+      - name: Upload FreeBSD artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: freebsd-builds
+          path: fyne-cross/dist/
+
+  build-android:
+    name: Build Android
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 33
+          target: android-33
+          build-tools: "33.0.2"
+
+      - name: Build Android
+        run: fyne-cross android -arch amd64,386,arm,arm64 --app-id $APP_ID || true
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-builds
+          path: fyne-cross/dist/
+
+  build-ios:
+    name: Build iOS
+    needs: setup
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build iOS
+        run: fyne-cross ios -arch amd64,arm64 --app-id $APP_ID || true
+      - name: Upload iOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-builds
           path: fyne-cross/dist/
 
   release:
+    name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: build
+    needs:
+      - build-linux
+      - build-windows
+      - build-macos
+      - build-freebsd
+      - build-android
+      - build-ios
     steps:
-      - name: Download artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: fyne-cross-builds
-          path: dist
+          name: linux-builds
+          path: dist/linux
 
-      - name: Rename & zip builds
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-builds
+          path: dist/windows
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-builds
+          path: dist/macos
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: freebsd-builds
+          path: dist/freebsd
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-builds
+          path: dist/android
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ios-builds
+          path: dist/ios
+
+      - name: Zip builds
         run: |
           cd dist
-          for dir in *; do
-            if [ -d "$dir" ]; then
-              zip -r "../MKConnect-${dir}.zip" "$dir"
+          for platform in *; do
+            if [ -d "$platform" ] && [ "$(ls -A $platform)" ]; then
+              zip -r "../MKConnect-${platform}-${{ github.ref_name }}.zip" "$platform"
             fi
           done
           cd ..
@@ -83,7 +184,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             🚀 Multi-platform build from Fyne Cross
-            Includes binaries for Linux, Windows, macOS, Android, iOS, and FreeBSD.
+            Includes binaries for Linux, Windows, macOS, FreeBSD, Android, and iOS.
           files: "MKConnect-*.zip"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
