@@ -49,11 +49,6 @@ jobs:
         run: fyne-cross android -arch amd64,386,arm,arm64 --app-id $APP_ID
         continue-on-error: true
 
-      # iOS builds (skip on error)
-      - name: Build iOS
-        run: fyne-cross ios -arch amd64,arm64 --app-id $APP_ID
-        continue-on-error: true
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -109,13 +104,6 @@ jobs:
             echo "No Android builds found"
           fi
 
-          # iOS
-          if [ -d dist/ios ]; then
-            find dist/ios -type f \( -name "*.ipa" -o -name "*.tar.gz" \) -exec cp {} release/ \;
-          else
-            echo "No iOS builds found"
-          fi
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -123,7 +111,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             🚀 Multi-platform build from Fyne Cross
-            Includes binaries for Linux, Windows, macOS, FreeBSD, Android, and iOS (where available).
+            Includes binaries for Linux, Windows, macOS, FreeBSD, and Android (where available).
           files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
