@@ -15,14 +15,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - run: |
+
+      - name: Install fyne-cross
+        run: |
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
-      - run: fyne-cross linux -arch amd64,386,arm,arm64
-      - uses: actions/upload-artifact@v4
+
+      - name: Build Linux
+        run: fyne-cross linux -arch amd64,386,arm,arm64
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: linux-builds
           path: fyne-cross/dist/
@@ -32,15 +40,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - run: |
+
+      - name: Install fyne-cross
+        run: |
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
-      - run: fyne-cross windows -arch amd64 --app-id com.mkconnect.app
-      - run: fyne-cross windows -arch 386 --app-id com.mkconnect.app || true
-      - uses: actions/upload-artifact@v4
+
+      - name: Build Windows
+        run: fyne-cross windows -arch amd64,386 --app-id com.mkconnect.app
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: windows-builds
           path: fyne-cross/dist/
@@ -50,14 +65,25 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - run: |
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Install fyne-cross
+        run: |
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
-      - run: fyne-cross darwin -arch amd64,arm64 --app-id com.mkconnect.app || true
-      - uses: actions/upload-artifact@v4
+
+      - name: Build macOS
+        run: fyne-cross darwin -arch amd64,arm64 --app-id com.mkconnect.app
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: macos-builds
           path: fyne-cross/dist/
@@ -67,14 +93,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - run: |
+
+      - name: Install fyne-cross
+        run: |
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
-      - run: fyne-cross freebsd -arch amd64 || true
-      - uses: actions/upload-artifact@v4
+
+      - name: Build FreeBSD
+        run: fyne-cross freebsd -arch amd64
+
+      - name: Upload FreeBSD artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: freebsd-builds
           path: fyne-cross/dist/
@@ -84,17 +118,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - run: |
+
+      - name: Install fyne-cross
+        run: |
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
-      - uses: android-actions/setup-android@v3
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
         with:
           api-level: 33
-      - run: fyne-cross android -arch arm,arm64 --app-id com.mkconnect.app || true
-      - uses: actions/upload-artifact@v4
+
+      - name: Build Android
+        run: fyne-cross android -arch arm,arm64 --app-id com.mkconnect.app
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: android-builds
           path: fyne-cross/dist/
@@ -109,46 +153,15 @@ jobs:
       - build-freebsd
       - build-android
     steps:
-      - name: Download Linux artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: linux-builds
-          path: dist/linux
-        continue-on-error: true
-
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-builds
-          path: dist/windows
-        continue-on-error: true
-
-      - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-builds
-          path: dist/macos
-        continue-on-error: true
-
-      - name: Download FreeBSD artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: freebsd-builds
-          path: dist/freebsd
-        continue-on-error: true
-
-      - name: Download Android artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: android-builds
-          path: dist/android
-        continue-on-error: true
+          path: dist
 
       - name: Collect binaries for release
         run: |
           mkdir -p release
-          find dist -type f -exec cp {} release/ \; || true
-          ls -l release/ || echo "No release files found"
+          find dist -type f -exec cp {} release/ \;
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -157,8 +170,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             🚀 Multi-platform build from Fyne Cross
-            Includes binaries for Linux, Windows, macOS, FreeBSD, and Android.
+            Includes final binaries for Linux, Windows, macOS, FreeBSD, and Android.
           files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
