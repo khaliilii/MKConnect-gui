@@ -70,9 +70,11 @@ jobs:
           export CGO_ENABLED=1
       - name: Install fyne and fyne-cross
         run: |
+          set -x
           go install fyne.io/fyne/v2/cmd/fyne@v2.5.0
           go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          fyne --version || { echo "Error: fyne CLI installation failed"; exit 1; }
       - name: Debug environment
         run: |
           set -x
@@ -90,11 +92,13 @@ jobs:
           if [ -f "Icon.png" ]; then echo "Icon.png found"; else echo "Warning: Icon.png not found"; fi
       - name: Set up Xcode
         run: |
+          set -x
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -sdk macosx -version
       - name: Build macOS
         run: |
           set -x
+          if [ ! -x "$(which fyne)" ]; then echo "Error: fyne binary not found in PATH"; exit 1; fi
           fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug
       - uses: actions/upload-artifact@v4
         with:
@@ -116,7 +120,7 @@ jobs:
           go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - name: Build FreeBSD
-        run: fyne-cross freebsd -arch amd64 || true
+        run: fyne-cross freebsd -arch amd64
       - uses: actions/upload-artifact@v4
         with:
           name: freebsd-builds
@@ -140,7 +144,7 @@ jobs:
         with:
           api-level: 33
       - name: Build Android
-        run: fyne-cross android -arch arm,arm64 --app-id com.mkconnect.app || true
+        run: fyne-cross android -arch arm,arm64 --app-id com.mkconnect.app
       - uses: actions/upload-artifact@v4
         with:
           name: android-builds
