@@ -68,7 +68,7 @@ jobs:
 
   build-macos:
     name: Build macOS
-    runs-on: macos-13  # macos-13 برای سازگاری بهتر؛ macos-latest نیز قابل تست است
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
 
@@ -80,10 +80,25 @@ jobs:
       - name: Download Go dependencies
         run: go mod download
 
-      - name: Install fyne-cross
+      - name: Install fyne and fyne-cross
         run: |
           go install github.com/fyne-io/fyne-cross@latest
+          go install fyne.io/fyne/v2/cmd/fyne@latest
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Debug environment
+        run: |
+          echo "PATH: $PATH"
+          echo "GOPATH: $(go env GOPATH)"
+          which fyne
+          which fyne-cross
+          fyne-cross --version
+          fyne --version
+
+      - name: Set up Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
 
       - name: Build macOS
         run: fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64
