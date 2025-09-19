@@ -9,9 +9,6 @@ on:
 permissions:
   contents: write
 
-env:
-  APP_ID: com.mkconnect.app
-
 jobs:
   build-linux:
     name: Build Linux
@@ -35,7 +32,6 @@ jobs:
       - name: Debug fyne-cross
         run: |
           fyne-cross --version || echo "fyne-cross --version failed, continuing anyway"
-          echo "APP_ID is $APP_ID"
           go version
           go env
         continue-on-error: true
@@ -80,7 +76,6 @@ jobs:
       - name: Debug fyne-cross
         run: |
           fyne-cross --version || echo "fyne-cross --version failed, continuing anyway"
-          echo "APP_ID is $APP_ID"
           go version
           go env
         continue-on-error: true
@@ -139,7 +134,6 @@ jobs:
       - name: Debug fyne-cross
         run: |
           fyne-cross --version || echo "fyne-cross --version failed, continuing anyway"
-          echo "APP_ID is $APP_ID"
           go version
           go env
           xcodebuild -version
@@ -191,7 +185,6 @@ jobs:
       - name: Debug fyne-cross
         run: |
           fyne-cross --version || echo "fyne-cross --version failed, continuing anyway"
-          echo "APP_ID is $APP_ID"
           go version
           go env
         continue-on-error: true
@@ -247,7 +240,6 @@ jobs:
       - name: Debug fyne-cross
         run: |
           fyne-cross --version || echo "fyne-cross --version failed, continuing anyway"
-          echo "APP_ID is $APP_ID"
           go version
           go env
         continue-on-error: true
