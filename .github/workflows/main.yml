@@ -22,7 +22,7 @@ jobs:
         run: go mod download
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+          go install github.com/fyne-io/fyne-cross@v1.4.3
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - name: Build Linux
         run: fyne-cross linux -arch amd64,386,arm,arm64
@@ -43,7 +43,7 @@ jobs:
         run: go mod download
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+          go install github.com/fyne-io/fyne-cross@v1.4.3
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - name: Build Windows
         run: |
@@ -64,17 +64,17 @@ jobs:
           go-version: "1.22"
       - name: Download Go dependencies
         run: go mod download
-      - name: Install dependencies for CGO
+      - name: Install dependencies for CGO and Docker
         run: |
           set -x
-          brew install gcc
+          brew install gcc docker
           export CGO_ENABLED=1
       - name: Install fyne and fyne-cross
         run: |
           set -x
           go env -w GOPROXY=direct
-          go install fyne.io/fyne/v2/cmd/fyne@v2.5.0
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+          go install fyne.io/fyne/v2/cmd/fyne@v2.4.4
+          go install github.com/fyne-io/fyne-cross@v1.4.3
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
           fyne --version || { echo "Error: fyne CLI installation failed"; exit 1; }
           fyne-cross --version || echo "Warning: fyne-cross --version returned non-zero exit code"
@@ -87,13 +87,20 @@ jobs:
           which fyne
           which fyne-cross
           which gcc
+          which clang
+          which docker
           go version
           fyne --version
           fyne-cross --version || true
           xcodebuild -version
           xcodebuild -sdk macosx -version
           gcc --version
+          clang --version
+          docker --version || echo "Docker not installed properly"
           ls -la .
+          cat go.mod || echo "Warning: go.mod not found"
+          cat fyne-cross.yaml || echo "Warning: fyne-cross.yaml not found"
+          cat fyne.yml || echo "Warning: fyne.yml not found"
           if [ ! -f "main.go" ]; then echo "Error: main.go not found"; exit 1; fi
           if [ -f "Icon.png" ]; then echo "Icon.png found"; else echo "Warning: Icon.png not found"; fi
       - name: Set up Xcode
@@ -101,18 +108,13 @@ jobs:
           set -x
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -sdk macosx -version
-      - name: Build macOS (Local)
+      - name: Build macOS
         run: |
           set -x
           if [ ! -x "$(which go)" ]; then echo "Error: go binary not found in PATH"; exit 1; fi
           if [ ! -x "$(which fyne)" ]; then echo "Error: fyne binary not found in PATH"; exit 1; fi
           if [ ! -x "$(which fyne-cross)" ]; then echo "Error: fyne-cross binary not found in PATH"; exit 1; fi
-          fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug -local
-      - name: Build macOS (Docker)
-        if: failure()
-        run: |
-          set -x
-          if [ ! -x "$(which docker)" ]; then echo "Error: docker not found"; exit 1; fi
+          if [ ! -x "$(which docker)" ]; then echo "Error: docker not found in PATH"; exit 1; fi
           fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug
       - uses: actions/upload-artifact@v4
         with:
@@ -131,7 +133,7 @@ jobs:
         run: go mod download
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+          go install github.com/fyne-io/fyne-cross@v1.4.3
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - name: Build FreeBSD
         run: fyne-cross freebsd -arch amd64
@@ -152,7 +154,7 @@ jobs:
         run: go mod download
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+          go install github.com/fyne-io/fyne-cross@v1.4.3
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - uses: android-actions/setup-android@v3
         with:
