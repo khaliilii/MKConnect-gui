@@ -236,6 +236,50 @@ jobs:
           name: android-builds
           path: fyne-cross/dist/
 
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Install fyne-cross
+        run: |
+          go install github.com/fyne-io/fyne-cross@v1.5.0
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+          echo "PATH is $PATH"
+          which fyne-cross
+          which go
+
+      - name: Debug fyne-cross
+        run: |
+          fyne-cross --version || echo "fyne-cross --version failed, continuing anyway"
+          echo "APP_ID is $APP_ID"
+          go version
+          go env
+          xcodebuild -version
+          ls -l /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/
+        continue-on-error: true
+
+      - name: Build iOS
+        run: |
+          echo "Running: fyne-cross ios -arch arm64 --app-id com.mkconnect.app --certificate ${{ secrets.APPLE_CERTIFICATE }} --certificate-password ${{ secrets.APPLE_CERTIFICATE_PASSWORD }} --provisioning-profile ${{ secrets.APPLE_PROVISIONING_PROFILE }} --team-id ${{ secrets.APPLE_TEAM_ID }}"
+          fyne-cross ios -arch arm64 --app-id com.mkconnect.app --certificate ${{ secrets.APPLE_CERTIFICATE }} --certificate-password ${{ secrets.APPLE_CERTIFICATE_PASSWORD }} --provisioning-profile ${{ secrets.APPLE_PROVISIONING_PROFILE }} --team-id ${{ secrets.APPLE_TEAM_ID }}
+        continue-on-error: true
+
+      - name: List iOS artifacts
+        run: ls -R fyne-cross/dist/
+
+      - name: Upload iOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-builds
+          path: fyne-cross/dist/
+
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -245,6 +289,7 @@ jobs:
       - build-macos
       - build-freebsd
       - build-android
+      - build-ios
     steps:
       - name: Download Linux artifacts
         uses: actions/download-artifact@v4
@@ -276,6 +321,12 @@ jobs:
           name: android-builds
           path: dist/android
 
+      - name: Download iOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-builds
+          path: dist/ios
+
       - name: List downloaded artifacts
         run: ls -R dist/
 
@@ -299,7 +350,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             🚀 Multi-platform build from Fyne Cross
-            Includes binaries for Linux, Windows, macOS, FreeBSD, and Android.
+            Includes binaries for Linux, Windows, macOS, FreeBSD, Android, and iOS.
           files: "MKConnect-*.zip"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
