@@ -71,23 +71,28 @@ jobs:
       - name: Install fyne and fyne-cross
         run: |
           set -x
+          go env -w GOPROXY=direct
           go install fyne.io/fyne/v2/cmd/fyne@v2.5.0
           go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
           fyne --version || { echo "Error: fyne CLI installation failed"; exit 1; }
+          fyne-cross --version || { echo "Error: fyne-cross installation failed"; exit 1; }
       - name: Debug environment
         run: |
           set -x
           echo "PATH: $PATH"
           echo "GOPATH: $(go env GOPATH)"
+          which go
           which fyne
           which fyne-cross
-          fyne-cross --version || true
-          fyne --version
-          ls -la .
+          which gcc
           go version
+          fyne --version
+          fyne-cross --version || true
           xcodebuild -version
+          xcodebuild -sdk macosx -version
           gcc --version
+          ls -la .
           if [ ! -f "main.go" ]; then echo "Error: main.go not found"; exit 1; fi
           if [ -f "Icon.png" ]; then echo "Icon.png found"; else echo "Warning: Icon.png not found"; fi
       - name: Set up Xcode
@@ -98,8 +103,10 @@ jobs:
       - name: Build macOS
         run: |
           set -x
+          if [ ! -x "$(which go)" ]; then echo "Error: go binary not found in PATH"; exit 1; fi
           if [ ! -x "$(which fyne)" ]; then echo "Error: fyne binary not found in PATH"; exit 1; fi
-          fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug
+          if [ ! -x "$(which fyne-cross)" ]; then echo "Error: fyne-cross binary not found in PATH"; exit 1; fi
+          fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug -local
       - uses: actions/upload-artifact@v4
         with:
           name: macos-builds
