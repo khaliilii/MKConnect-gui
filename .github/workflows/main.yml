@@ -23,7 +23,7 @@ jobs:
 
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
           echo "PATH is $PATH"
           which fyne-cross
@@ -67,7 +67,7 @@ jobs:
 
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
           echo "PATH is $PATH"
           which fyne-cross
@@ -122,7 +122,7 @@ jobs:
 
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
           echo "PATH is $PATH"
           which fyne-cross
@@ -176,7 +176,7 @@ jobs:
 
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
           echo "PATH is $PATH"
           which fyne-cross
@@ -221,7 +221,7 @@ jobs:
 
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.5.0
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
           echo "PATH is $PATH"
           which fyne-cross
