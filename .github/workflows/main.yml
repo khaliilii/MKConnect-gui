@@ -31,7 +31,7 @@ jobs:
       # Windows builds
       - name: Build Windows
         run: |
-          fyne-cross windows -arch amd64,386
+          fyne-cross windows -arch amd64,386 --app-id com.example.mkconnect
 
       # macOS builds
       - name: Build macOS
