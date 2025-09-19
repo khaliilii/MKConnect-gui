@@ -1,0 +1,92 @@
+name: MKConnect Fyne Cross Build & Release (All OS/Arch)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Install fyne-cross
+        run: |
+          go install github.com/fyne-io/fyne-cross@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      # Linux builds
+      - name: Build Linux
+        run: |
+          fyne-cross linux -arch amd64,386,arm,arm64
+
+      # Windows builds
+      - name: Build Windows
+        run: |
+          fyne-cross windows -arch amd64,386
+
+      # macOS builds
+      - name: Build macOS
+        run: |
+          fyne-cross darwin -arch amd64,arm64
+
+      # FreeBSD builds
+      - name: Build FreeBSD
+        run: |
+          fyne-cross freebsd -arch amd64,386,arm,arm64
+
+      # Android builds
+      - name: Build Android
+        run: |
+          fyne-cross android -arch amd64,386,arm,arm64
+
+      # iOS builds
+      - name: Build iOS
+        run: |
+          fyne-cross ios -arch amd64,arm64
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fyne-cross-builds
+          path: fyne-cross/dist/
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: fyne-cross-builds
+          path: dist
+
+      - name: Zip files by platform
+        run: |
+          cd dist
+          for dir in *; do
+            if [ -d "$dir" ]; then
+              zip -r "../$dir.zip" "$dir"
+            fi
+          done
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            🚀 Multi-platform build from Fyne Cross
+            Includes binaries for Linux, Windows, macOS, Android, iOS, and FreeBSD.
+          files: "*.zip"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
