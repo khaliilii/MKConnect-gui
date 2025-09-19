@@ -99,6 +99,8 @@ jobs:
           set -x
           brew install gcc docker
           export CGO_ENABLED=1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Install fyne and fyne-cross
         run: |
           set -x
@@ -119,6 +121,7 @@ jobs:
           which gcc
           which clang
           which docker
+          which zig || echo "Warning: zig not found"
           go version
           fyne --version
           fyne-cross --version || true
@@ -127,6 +130,7 @@ jobs:
           gcc --version
           clang --version
           docker --version || echo "Docker not installed properly"
+          docker info || echo "Docker daemon not running"
           ls -la .
           cat go.mod || echo "Warning: go.mod not found"
           cat fyne-cross.yaml || echo "Warning: fyne-cross.yaml not found"
@@ -144,8 +148,14 @@ jobs:
           if [ ! -x "$(which go)" ]; then echo "Error: go binary not found in PATH"; exit 1; fi
           if [ ! -x "$(which fyne)" ]; then echo "Error: fyne binary not found in PATH"; exit 1; fi
           if [ ! -x "$(which fyne-cross)" ]; then echo "Error: fyne-cross binary not found in PATH"; exit 1; fi
-          if [ ! -x "$(which docker)" ]; then echo "Error: docker not found in PATH"; exit 1; fi
-          fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug
+          if [ ! -x "$(which docker)" ]; then echo "Warning: docker not found in PATH, falling back to local build"; 
+            fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug -local || { echo "Error: local build failed"; exit 1; }
+          else
+            docker info || { echo "Error: Docker daemon not running, falling back to local build"; 
+              fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug -local || { echo "Error: local build failed"; exit 1; }
+            }
+            fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: macos-builds
