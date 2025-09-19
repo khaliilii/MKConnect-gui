@@ -66,6 +66,7 @@ jobs:
         run: go mod download
       - name: Install dependencies for CGO
         run: |
+          set -x
           brew install gcc
           export CGO_ENABLED=1
       - name: Install fyne and fyne-cross
@@ -76,7 +77,7 @@ jobs:
           go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
           fyne --version || { echo "Error: fyne CLI installation failed"; exit 1; }
-          fyne-cross --version || { echo "Error: fyne-cross installation failed"; exit 1; }
+          fyne-cross --version || echo "Warning: fyne-cross --version returned non-zero exit code"
       - name: Debug environment
         run: |
           set -x
@@ -100,13 +101,19 @@ jobs:
           set -x
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -sdk macosx -version
-      - name: Build macOS
+      - name: Build macOS (Local)
         run: |
           set -x
           if [ ! -x "$(which go)" ]; then echo "Error: go binary not found in PATH"; exit 1; fi
           if [ ! -x "$(which fyne)" ]; then echo "Error: fyne binary not found in PATH"; exit 1; fi
           if [ ! -x "$(which fyne-cross)" ]; then echo "Error: fyne-cross binary not found in PATH"; exit 1; fi
           fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug -local
+      - name: Build macOS (Docker)
+        if: failure()
+        run: |
+          set -x
+          if [ ! -x "$(which docker)" ]; then echo "Error: docker not found"; exit 1; fi
+          fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug
       - uses: actions/upload-artifact@v4
         with:
           name: macos-builds
