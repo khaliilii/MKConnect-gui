@@ -8,7 +8,6 @@ on:
 
 env:
   APP_ID: com.mkconnect.app
-  APP_NAME: MKConnect
 
 jobs:
   build-linux:
@@ -24,19 +23,19 @@ jobs:
 
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.4.3
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Debug fyne-cross
         run: |
           fyne-cross --version
-          echo "Building for Linux..."
+          echo "APP_ID is $APP_ID"
 
       - name: Build Linux
         run: fyne-cross linux -arch amd64,386,arm,arm64
 
       - name: List Linux artifacts
-        run: ls -la fyne-cross/dist/
+        run: ls -R fyne-cross/dist/
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
@@ -57,24 +56,22 @@ jobs:
 
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.4.3
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Debug fyne-cross
         run: |
           fyne-cross --version
-          echo "APP_ID: com.mkconnect.app"
-          echo "Building for Windows..."
+          echo "APP_ID is $APP_ID"
 
-      - name: Build Windows (only amd64 first)
-        run: fyne-cross windows -arch amd64 --app-id=com.mkconnect.app --name="$APP_NAME" --release
+      - name: Build Windows amd64
+        run: fyne-cross windows -arch amd64 --app-id com.mkconnect.app
 
-      - name: Build Windows 386 (if amd64 succeeds)
-        run: fyne-cross windows -arch 386 --app-id=com.mkconnect.app --name="$APP_NAME" --release
-        continue-on-error: true  # اگر 386 شکست بخورد، ادامه دهد
+      - name: Build Windows 386
+        run: fyne-cross windows -arch 386 --app-id com.mkconnect.app
 
       - name: List Windows artifacts
-        run: ls -la fyne-cross/dist/
+        run: ls -R fyne-cross/dist/
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -95,20 +92,19 @@ jobs:
 
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@v1.4.3
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Debug fyne-cross
         run: |
           fyne-cross --version
-          echo "APP_ID: com.mkconnect.app"
-          echo "Building for macOS..."
+          echo "APP_ID is $APP_ID"
 
       - name: Build macOS
-        run: fyne-cross darwin -arch amd64,arm64 --app-id=com.mkconnect.app --name="$APP_NAME" --release
+        run: fyne-cross darwin -arch amd64,arm64 --app-id com.mkconnect.app
 
       - name: List macOS artifacts
-        run: ls -la fyne-cross/dist/
+        run: ls -R fyne-cross/dist/
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -143,24 +139,20 @@ jobs:
           path: dist/macos
 
       - name: List downloaded artifacts
-        run: ls -la dist/
+        run: ls -R dist/
 
       - name: Zip builds
         run: |
-          mkdir -p release
           cd dist
           for platform in *; do
-            if [ -d "$platform" ] && [ "$(ls -A "$platform" 2>/dev/null)" ]; then
-              echo "Zipping $platform..."
-              zip -r "../release/MKConnect-${platform}-${{ github.ref_name }}.zip" "$platform"
-            else
-              echo "Skipping empty $platform"
+            if [ -d "$platform" ] && [ "$(ls -A $platform)" ]; then
+              zip -r "../MKConnect-${platform}-${{ github.ref_name }}.zip" "$platform"
             fi
           done
           cd ..
 
       - name: List zip files
-        run: ls -la release/
+        run: ls -l MKConnect-*.zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -170,6 +162,6 @@ jobs:
           body: |
             🚀 Multi-platform build from Fyne Cross
             Includes binaries for Linux, Windows, and macOS.
-          files: release/MKConnect-*.zip
+          files: "MKConnect-*.zip"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
