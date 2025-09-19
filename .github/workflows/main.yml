@@ -229,6 +229,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          sdk-version: "33"
 
       - name: Debug Android SDK
         run: |
@@ -263,6 +265,65 @@ jobs:
           path: fyne-cross/dist/
         continue-on-error: true
 
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Select Xcode version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app || echo "Failed to select Xcode 15.4, continuing anyway"
+        continue-on-error: true
+
+      - name: Install fyne-cross
+        run: |
+          go install github.com/fyne-io/fyne-cross@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+          echo "PATH is $PATH"
+          which fyne-cross
+          which go
+          which codesign
+          which clang
+        continue-on-error: true
+
+      - name: Debug fyne-cross
+        run: |
+          fyne-cross --version || echo "fyne-cross --version failed, continuing anyway"
+          go version
+          go env
+          xcodebuild -version
+          ls -l /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/
+          echo "Checking codesign tool:"
+          codesign --version || echo "codesign not found"
+          echo "Checking clang tool:"
+          clang --version || echo "clang not found"
+        continue-on-error: true
+
+      - name: Build iOS
+        run: |
+          echo "Running: fyne-cross ios -arch arm64 --app-id com.mkconnect.app"
+          fyne-cross ios -arch arm64 --app-id com.mkconnect.app
+        continue-on-error: true
+
+      - name: List iOS artifacts
+        run: |
+          echo "Listing iOS artifacts in fyne-cross/dist/:"
+          ls -R fyne-cross/dist/ || echo "No artifacts found in fyne-cross/dist/"
+        continue-on-error: true
+
+      - name: Upload iOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-builds
+          path: fyne-cross/dist/
+        continue-on-error: true
+
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -272,6 +333,7 @@ jobs:
       - build-macos
       - build-freebsd
       - build-android
+      - build-ios
     steps:
       - name: Download Linux artifacts
         uses: actions/download-artifact@v4
@@ -308,6 +370,13 @@ jobs:
           path: dist/android
         continue-on-error: true
 
+      - name: Download iOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-builds
+          path: dist/ios
+        continue-on-error: true
+
       - name: List downloaded artifacts
         run: |
           echo "Listing downloaded artifacts in dist/:"
@@ -327,12 +396,24 @@ jobs:
           find dist/freebsd -type f \( -name "*.tar.xz" -o -name "*.tar.gz" \) -exec cp {} release/ \;
           # Android
           find dist/android -type f -name "*.apk" -exec cp {} release/ \;
+          # iOS
+          find dist/ios -type f -name "*.ipa" -exec cp {} release/ \;
         continue-on-error: true
 
-      - name: List release files
+      - name: Zip builds
         run: |
-          echo "Listing release files in release/:"
-          ls -l release/ || echo "No files found in release/"
+          mkdir -p zips
+          for platform in linux windows macos freebsd android ios; do
+            if [ -d "dist/$platform" ] && [ "$(ls -A dist/$platform)" ]; then
+              zip -r "zips/MKConnect-$platform-${{ github.ref_name }}.zip" "dist/$platform"
+            fi
+          done
+        continue-on-error: true
+
+      - name: List zip files
+        run: |
+          echo "Listing zip files in zips/:"
+          ls -l zips/ || echo "No zip files found in zips/"
         continue-on-error: true
 
       - name: Create GitHub Release
@@ -342,8 +423,8 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             🚀 Multi-platform build from Fyne Cross
-            Includes final binaries for Linux, Windows, macOS, FreeBSD, and Android.
-          files: release/*
+            Includes binaries for Linux, Windows, macOS, FreeBSD, Android, and iOS.
+          files: zips/MKConnect-*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
