@@ -6,6 +6,9 @@ on:
       - "v*"
   workflow_dispatch:
 
+env:
+  APP_ID: com.mkconnect.app
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,29 +26,29 @@ jobs:
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
 
-      # Linux
+      # Linux builds
       - name: Build Linux
         run: fyne-cross linux -arch amd64,386,arm,arm64
 
-      # Windows
+      # Windows builds
       - name: Build Windows
-        run: fyne-cross windows -arch amd64,386 --app-id com.example.mkconnect
+        run: fyne-cross windows -arch amd64,386 --app-id $APP_ID
 
-      # macOS
+      # macOS builds
       - name: Build macOS
-        run: fyne-cross darwin -arch amd64,arm64
+        run: fyne-cross darwin -arch amd64,arm64 --app-id $APP_ID
 
-      # FreeBSD
+      # FreeBSD builds
       - name: Build FreeBSD
         run: fyne-cross freebsd -arch amd64,386,arm,arm64
 
-      # Android
+      # Android builds
       - name: Build Android
-        run: fyne-cross android -arch amd64,386,arm,arm64 --app-id com.example.mkconnect
+        run: fyne-cross android -arch amd64,386,arm,arm64 --app-id $APP_ID
 
-      # iOS
+      # iOS builds
       - name: Build iOS
-        run: fyne-cross ios -arch amd64,arm64 --app-id com.example.mkconnect
+        run: fyne-cross ios -arch amd64,arm64 --app-id $APP_ID
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
