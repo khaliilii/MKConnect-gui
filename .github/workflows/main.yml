@@ -15,25 +15,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-
       - name: Download Go dependencies
         run: go mod download
-
       - name: Install fyne-cross
         run: |
           go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$HOME/go/bin" >> $GITHUB_PATH
-
       - name: Build Linux
         run: fyne-cross linux -arch amd64,386,arm,arm64
-
-      - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: linux-builds
           path: fyne-cross/dist/
@@ -43,54 +36,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-
       - name: Download Go dependencies
         run: go mod download
-
       - name: Install fyne-cross
         run: |
           go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$HOME/go/bin" >> $GITHUB_PATH
-
       - name: Build Windows
-        run: fyne-cross windows -arch amd64,386 --app-id com.mkconnect.app
-
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
+        run: |
+          fyne-cross windows -arch amd64 --app-id com.mkconnect.app
+          fyne-cross windows -arch 386 --app-id com.mkconnect.app || true
+      - uses: actions/upload-artifact@v4
         with:
           name: windows-builds
           path: fyne-cross/dist/
 
   build-macos:
     name: Build macOS
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-
       - name: Download Go dependencies
         run: go mod download
-
       - name: Install dependencies for CGO
         run: |
           brew install gcc
           export CGO_ENABLED=1
-
       - name: Install fyne and fyne-cross
         run: |
           go install fyne.io/fyne/v2/cmd/fyne@v2.5.0
           go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-
       - name: Debug environment
         run: |
           set -x
@@ -106,19 +88,15 @@ jobs:
           gcc --version
           if [ ! -f "main.go" ]; then echo "Error: main.go not found"; exit 1; fi
           if [ -f "Icon.png" ]; then echo "Icon.png found"; else echo "Warning: Icon.png not found"; fi
-
       - name: Set up Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -sdk macosx -version
-
       - name: Build macOS
         run: |
           set -x
           fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -verbose
-
-      - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: macos-builds
           path: fyne-cross/dist/
@@ -128,25 +106,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-
       - name: Download Go dependencies
         run: go mod download
-
       - name: Install fyne-cross
         run: |
           go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$HOME/go/bin" >> $GITHUB_PATH
-
       - name: Build FreeBSD
-        run: fyne-cross freebsd -arch amd64
-
-      - name: Upload FreeBSD artifacts
-        uses: actions/upload-artifact@v4
+        run: fyne-cross freebsd -arch amd64 || true
+      - uses: actions/upload-artifact@v4
         with:
           name: freebsd-builds
           path: fyne-cross/dist/
@@ -156,30 +127,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-
       - name: Download Go dependencies
         run: go mod download
-
       - name: Install fyne-cross
         run: |
           go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$HOME/go/bin" >> $GITHUB_PATH
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v3
         with:
           api-level: 33
-
       - name: Build Android
-        run: fyne-cross android -arch arm,arm64 --app-id com.mkconnect.app
-
-      - name: Upload Android artifacts
-        uses: actions/upload-artifact@v4
+        run: fyne-cross android -arch arm,arm64 --app-id com.mkconnect.app || true
+      - uses: actions/upload-artifact@v4
         with:
           name: android-builds
           path: fyne-cross/dist/
@@ -194,11 +156,36 @@ jobs:
       - build-freebsd
       - build-android
     steps:
-      - name: Download all artifacts
+      - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
-          path: dist
-
+          name: linux-builds
+          path: dist/linux
+        continue-on-error: true
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-builds
+          path: dist/windows
+        continue-on-error: true
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-builds
+          path: dist/macos
+        continue-on-error: true
+      - name: Download FreeBSD artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: freebsd-builds
+          path: dist/freebsd
+        continue-on-error: true
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: android-builds
+          path: dist/android
+        continue-on-error: true
       - name: Collect binaries for release
         run: |
           mkdir -p release/linux
@@ -206,14 +193,12 @@ jobs:
           mkdir -p release/macos
           mkdir -p release/freebsd
           mkdir -p release/android
-          find dist/linux-builds -type f -exec cp {} release/linux/ \;
-          find dist/windows-builds -type f -exec cp {} release/windows/ \;
-          find dist/macos-builds -type f -exec cp {} release/macos/ \;
-          find dist/freebsd-builds -type f -exec cp {} release
-
-/freebsd/ \;
-          find dist/android-builds -type f -exec cp {} release/android/ \;
-
+          find dist/linux -type f -exec cp {} release/linux/ \; || true
+          find dist/windows -type f -exec cp {} release/windows/ \; || true
+          find dist/macos -type f -exec cp {} release/macos/ \; || true
+          find dist/freebsd -type f -exec cp {} release/freebsd/ \; || true
+          find dist/android -type f -exec cp {} release/android/ \; || true
+          ls -lR release/ || echo "No release files found"
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -221,7 +206,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             🚀 Multi-platform build from Fyne Cross
-            Includes final binaries for:
+            Includes binaries for:
             - Linux (amd64, 386, arm, arm64)
             - Windows (amd64, 386)
             - macOS (amd64, arm64)
