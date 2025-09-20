@@ -1,4 +1,4 @@
-name: MKConnect Fyne Cross Build & Release (All OS/Arch)
+name: MKConnect Fyne Cross Build & Release
 
 on:
   push:
@@ -11,7 +11,6 @@ permissions:
 
 jobs:
   build-linux:
-    name: Build Linux
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -24,18 +23,17 @@ jobs:
       - run: |
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
-      - run: fyne-cross linux -arch=amd64,386,arm,arm64 -app-id=com.mkconnect.app
+      - run: fyne-cross linux -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-builds
+          name: linux-builds-${{ matrix.arch }}
           path: fyne-cross/dist/
 
   build-windows:
-    name: Build Windows
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: [amd64, arm64, 386]
+        arch: [amd64, 386]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -44,47 +42,33 @@ jobs:
       - run: |
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
-      - run: fyne-cross windows -arch=amd64,386 -app-id=com.mkconnect.app
+      - run: fyne-cross windows -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-builds
+          name: windows-builds-${{ matrix.arch }}
           path: fyne-cross/dist/
 
   build-macos:
-    name: Build macOS
     runs-on: macos-latest
     strategy:
       matrix:
-        arch: [amd64, arm64, 386]
+        arch: [amd64, arm64]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - name: Install dependencies for macOS
-        run: |
-          brew install pkg-config
-          sudo mkdir -p /usr/local/Cellar/osxcross
-          sudo chown $USER:admin /usr/local/Cellar/osxcross
-          git clone https://github.com/tpoechtrager/osxcross.git /usr/local/Cellar/osxcross
-          cd /usr/local/Cellar/osxcross
-          ./tools/gen_sdk_package.sh || true
-          tar -xzf *.tar.gz -C /usr/local/Cellar/osxcross || true
-          export SDK_DIR=/usr/local/Cellar/osxcross/MacOSX11.0.sdk
-          echo "SDK_DIR=$SDK_DIR" >> $GITHUB_ENV
-        continue-on-error: true
+      - run: brew install pkg-config
       - run: |
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
-      - run: fyne-cross darwin -arch=${{ matrix.arch }} -app-id=com.mkconnect.app -macosx-version-min=11.0
-        continue-on-error: true
+      - run: fyne-cross darwin -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
       - uses: actions/upload-artifact@v4
         with:
           name: macos-builds-${{ matrix.arch }}
           path: fyne-cross/dist/
 
   build-android:
-    name: Build Android
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -99,22 +83,19 @@ jobs:
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - uses: android-actions/setup-android@v3
         with:
-          api-level: 33
-      - name: Update SDK Manager and Install Android NDK
-        run: |
-          sdkmanager --update
+          packages: |
+            platforms;android-33
+            build-tools;33.0.2
+      - run: |
           sdkmanager "ndk;23.1.7779620"
-          export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/23.1.7779620
-          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
-      - run: fyne-cross android -arch=arm,arm64,amd64 -app-id=com.mkconnect.app
-        continue-on-error: true
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/23.1.7779620" >> $GITHUB_ENV
+      - run: fyne-cross android -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
       - uses: actions/upload-artifact@v4
         with:
-          name: android-builds
+          name: android-builds-${{ matrix.arch }}
           path: fyne-cross/dist/
 
   release:
-    name: Create Release
     runs-on: ubuntu-latest
     needs:
       - build-linux
@@ -122,55 +103,19 @@ jobs:
       - build-macos
       - build-android
     steps:
-      - name: Download Linux artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: linux-builds
-          path: dist/linux
-        continue-on-error: true
-
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-builds
-          path: dist/windows
-        continue-on-error: true
-
-      - name: Download macOS amd64 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-builds-amd64
-          path: dist/macos/amd64
-        continue-on-error: true
-
-      - name: Download macOS arm64 artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-builds-arm64
-          path: dist/macos/arm64
-        continue-on-error: true
-
-      - name: Download Android artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: android-builds
-          path: dist/android
-        continue-on-error: true
-
-      - name: Collect binaries for release
-        run: |
+          path: dist
+      - run: |
           mkdir -p release
           find dist -type f -exec cp {} release/ \; || true
-          ls -l release/ || echo "No release files found"
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+          ls -lh release/
+      - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           body: |
             🚀 MKConnect Multi-platform Build
-            Includes binaries for Linux (amd64, 386, arm, arm64), Windows (amd64, 386), macOS (amd64, arm64), and Android (arm, arm64, amd64).
           files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
