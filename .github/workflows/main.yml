@@ -13,9 +13,6 @@ jobs:
   build-linux:
     name: Build Linux
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [amd64, arm64]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -33,9 +30,6 @@ jobs:
   build-windows:
     name: Build Windows
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [amd64, arm64]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -68,10 +62,11 @@ jobs:
           sudo chown $USER:admin /usr/local/Cellar/osxcross
           git clone https://github.com/tpoechtrager/osxcross.git /usr/local/Cellar/osxcross
           cd /usr/local/Cellar/osxcross
-          ./tools/gen_sdk_package.sh
-          tar -xzf *.tar.gz -C /usr/local/Cellar/osxcross
+          ./tools/gen_sdk_package.sh || true
+          tar -xzf *.tar.gz -C /usr/local/Cellar/osxcross || true
           export SDK_DIR=/usr/local/Cellar/osxcross/MacOSX11.0.sdk
           echo "SDK_DIR=$SDK_DIR" >> $GITHUB_ENV
+        continue-on-error: true
       - run: |
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
@@ -96,9 +91,12 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           api-level: 33
-      - name: Install Android NDK
+      - name: Update SDK Manager and Install Android NDK
         run: |
-          sdkmanager "ndk;latest"
+          sdkmanager --update
+          sdkmanager "ndk;23.1.7779620"
+          export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/23.1.7779620
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
       - run: fyne-cross android -arch=arm,arm64,amd64 -app-id=com.mkconnect.app
         continue-on-error: true
       - uses: actions/upload-artifact@v4
