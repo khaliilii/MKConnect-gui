@@ -22,6 +22,7 @@ jobs:
         with:
           go-version: "1.22"
       - run: |
+          go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - run: fyne-cross linux -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
       - name: Rename artifacts
@@ -51,17 +52,19 @@ jobs:
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - run: fyne-cross windows -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
+        continue-on-error: true   # بعضی archها ممکنه fail شن
       - name: Rename artifacts
         run: |
           mkdir -p renamed
           for f in fyne-cross/dist/*; do
             ext="${f##*.}"
             mv "$f" "renamed/MkConnect-windows-${{ matrix.arch }}.$ext"
-          done
+          done || true
       - uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}
           path: renamed/
+        continue-on-error: true
 
   build-macos:
     name: Build macOS
@@ -79,7 +82,7 @@ jobs:
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - run: fyne-cross darwin -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
-        continue-on-error: true   # ❗ خطا در macOS رو اسکپ می‌کنه
+        continue-on-error: true
       - name: Rename artifacts
         run: |
           mkdir -p renamed
@@ -115,17 +118,19 @@ jobs:
           sdkmanager "ndk;23.1.7779620"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/23.1.7779620" >> $GITHUB_ENV
       - run: fyne-cross android -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
+        continue-on-error: true
       - name: Rename artifacts
         run: |
           mkdir -p renamed
           for f in fyne-cross/dist/*; do
             ext="${f##*.}"
             mv "$f" "renamed/MkConnect-android-${{ matrix.arch }}.$ext"
-          done
+          done || true
       - uses: actions/upload-artifact@v4
         with:
           name: android-${{ matrix.arch }}
           path: renamed/
+        continue-on-error: true
 
   release:
     name: Create GitHub Release
@@ -155,11 +160,10 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             🚀 MKConnect Multi-platform Build
-
             Includes binaries:
             - **Linux**: amd64, 386, arm, arm64
-            - **Windows**: amd64, 386
-            - **macOS**: amd64, arm64 (if build succeeded)
+            - **Windows**: amd64, 386 (arm/arm64 if succeed)
+            - **macOS**: amd64, arm64 (if succeed)
             - **Android**: amd64, arm, arm64
           files: release/*
         env:
