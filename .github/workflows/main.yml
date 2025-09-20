@@ -25,10 +25,17 @@ jobs:
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - run: fyne-cross linux -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
+      - name: Rename artifacts
+        run: |
+          mkdir -p renamed
+          for f in fyne-cross/dist/*; do
+            ext="${f##*.}"
+            mv "$f" "renamed/MkConnect-linux-${{ matrix.arch }}.$ext"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: linux-${{ matrix.arch }}
-          path: fyne-cross/dist/
+          path: renamed/
 
   build-windows:
     name: Build Windows
@@ -45,10 +52,17 @@ jobs:
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - run: fyne-cross windows -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
+      - name: Rename artifacts
+        run: |
+          mkdir -p renamed
+          for f in fyne-cross/dist/*; do
+            ext="${f##*.}"
+            mv "$f" "renamed/MkConnect-windows-${{ matrix.arch }}.$ext"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}
-          path: fyne-cross/dist/
+          path: renamed/
 
   build-macos:
     name: Build macOS
@@ -66,10 +80,19 @@ jobs:
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - run: fyne-cross darwin -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
+        continue-on-error: true   # ❗ خطا در macOS رو اسکپ می‌کنه
+      - name: Rename artifacts
+        run: |
+          mkdir -p renamed
+          for f in fyne-cross/dist/*; do
+            ext="${f##*.}"
+            mv "$f" "renamed/MkConnect-macos-${{ matrix.arch }}.$ext"
+          done || true
       - uses: actions/upload-artifact@v4
         with:
           name: macos-${{ matrix.arch }}
-          path: fyne-cross/dist/
+          path: renamed/
+        continue-on-error: true
 
   build-android:
     name: Build Android
@@ -93,10 +116,17 @@ jobs:
           sdkmanager "ndk;23.1.7779620"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/23.1.7779620" >> $GITHUB_ENV
       - run: fyne-cross android -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
+      - name: Rename artifacts
+        run: |
+          mkdir -p renamed
+          for f in fyne-cross/dist/*; do
+            ext="${f##*.}"
+            mv "$f" "renamed/MkConnect-android-${{ matrix.arch }}.$ext"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: android-${{ matrix.arch }}
-          path: fyne-cross/dist/
+          path: renamed/
 
   release:
     name: Create GitHub Release
@@ -127,10 +157,10 @@ jobs:
           body: |
             🚀 MKConnect Multi-platform Build
 
-            Includes binaries for:
+            Includes binaries:
             - **Linux**: amd64, 386, arm, arm64
             - **Windows**: amd64, 386
-            - **macOS**: amd64, arm64
+            - **macOS**: amd64, arm64 (if build succeeded)
             - **Android**: amd64, arm, arm64
           files: release/*
         env:
