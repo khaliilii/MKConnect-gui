@@ -9,9 +9,11 @@ on:
 permissions:
   contents: write
 
+env:
+  APP_NAME: MKConnect-gui
+
 jobs:
   build-linux:
-    name: Build Linux
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,13 +24,19 @@ jobs:
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - run: fyne-cross linux -arch amd64,386,arm,arm64 || true
+      - run: |
+          mkdir -p dist/linux
+          for f in fyne-cross/dist/*; do
+            arch=$(basename $f | cut -d'-' -f2)
+            ext=${f##*.}
+            mv "$f" "dist/linux/${APP_NAME}-linux-${arch}.${ext}"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: linux-builds
-          path: fyne-cross/dist/
+          path: dist/linux/
 
   build-windows:
-    name: Build Windows
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,15 +46,19 @@ jobs:
       - run: |
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
-      - run: fyne-cross windows -arch amd64 --app-id com.mkconnect.app || true
-      - run: fyne-cross windows -arch 386 --app-id com.mkconnect.app || true
+      - run: fyne-cross windows -arch amd64,386 --app-id com.mkconnect.app || true
+      - run: |
+          mkdir -p dist/windows
+          for f in fyne-cross/dist/*; do
+            arch=$(basename $f | cut -d'-' -f2)
+            mv "$f" "dist/windows/${APP_NAME}-windows-${arch}.zip"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: windows-builds
-          path: fyne-cross/dist/
+          path: dist/windows/
 
   build-macos:
-    name: Build macOS
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,13 +69,18 @@ jobs:
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - run: fyne-cross darwin -arch amd64,arm64 --app-id com.mkconnect.app || true
+      - run: |
+          mkdir -p dist/macos
+          for f in fyne-cross/dist/*; do
+            arch=$(basename $f | cut -d'-' -f2)
+            mv "$f" "dist/macos/${APP_NAME}-macos-${arch}.tar.gz"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: macos-builds
-          path: fyne-cross/dist/
+          path: dist/macos/
 
   build-freebsd:
-    name: Build FreeBSD
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -74,13 +91,17 @@ jobs:
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - run: fyne-cross freebsd -arch amd64 || true
+      - run: |
+          mkdir -p dist/freebsd
+          for f in fyne-cross/dist/*; do
+            mv "$f" "dist/freebsd/${APP_NAME}-freebsd-amd64.tar.gz"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: freebsd-builds
-          path: fyne-cross/dist/
+          path: dist/freebsd/
 
   build-android:
-    name: Build Android
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -94,13 +115,18 @@ jobs:
         with:
           api-level: 33
       - run: fyne-cross android -arch arm,arm64 --app-id com.mkconnect.app || true
+      - run: |
+          mkdir -p dist/android
+          for f in fyne-cross/dist/*; do
+            arch=$(basename $f | cut -d'-' -f2)
+            mv "$f" "dist/android/${APP_NAME}-android-${arch}.apk"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: android-builds
-          path: fyne-cross/dist/
+          path: dist/android/
 
   release:
-    name: Create Release
     runs-on: ubuntu-latest
     needs:
       - build-linux
@@ -109,36 +135,27 @@ jobs:
       - build-freebsd
       - build-android
     steps:
-      - name: Download Linux artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: linux-builds
           path: dist/linux
         continue-on-error: true
-
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: windows-builds
           path: dist/windows
         continue-on-error: true
-
-      - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: macos-builds
           path: dist/macos
         continue-on-error: true
-
-      - name: Download FreeBSD artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: freebsd-builds
           path: dist/freebsd
         continue-on-error: true
-
-      - name: Download Android artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: android-builds
           path: dist/android
@@ -147,8 +164,8 @@ jobs:
       - name: Collect binaries for release
         run: |
           mkdir -p release
-          find dist -type f -exec cp {} release/ \; || true
-          ls -l release/ || echo "No release files found"
+          cp -r dist/*/* release/
+          ls -l release/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
