@@ -22,7 +22,7 @@ jobs:
         run: go mod download
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@latest
+          go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - name: Debug environment
         run: |
@@ -71,7 +71,7 @@ jobs:
         run: go mod download
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@latest
+          go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - name: Debug environment
         run: |
@@ -128,12 +128,14 @@ jobs:
           set -x
           brew install gcc zig
           export CGO_ENABLED=1
+          export CC=/opt/homebrew/bin/gcc-15
+          export CXX=/opt/homebrew/bin/g++-15
       - name: Install fyne and fyne-cross
         run: |
           set -x
           go env -w GOPROXY=direct
-          go install fyne.io/fyne/v2/cmd/fyne@latest
-          go install github.com/fyne-io/fyne-cross@latest
+          go install fyne.io/fyne/v2/cmd/fyne@v2.6.3
+          go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
           fyne --version || { echo "Error: fyne CLI installation failed"; exit 1; }
           fyne-cross --version || echo "Warning: fyne-cross --version returned non-zero exit code"
@@ -142,6 +144,9 @@ jobs:
           set -x
           echo "PATH: $PATH"
           echo "GOPATH: $(go env GOPATH)"
+          echo "CGO_ENABLED: $CGO_ENABLED"
+          echo "CC: $CC"
+          echo "CXX: $CXX"
           which go
           which fyne
           which fyne-cross
@@ -167,14 +172,22 @@ jobs:
           set -x
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -sdk macosx -version
-      - name: Build macOS
+      - name: Build macOS amd64
         run: |
           set -x
           if [ ! -x "$(which go)" ]; then echo "Error: go binary not found in PATH"; exit 1; fi
           if [ ! -x "$(which fyne)" ]; then echo "Error: fyne binary not found in PATH"; exit 1; fi
           if [ ! -x "$(which fyne-cross)" ]; then echo "Error: fyne-cross binary not found in PATH"; exit 1; fi
-          if [ ! -x "$(which zig)" ]; then echo "Warning: zig not found in PATH"; fi
-          fyne-cross darwin -app-id com.mkconnect.app -arch amd64,arm64 -debug -local
+          if [ ! -x "$(which zig)" ]; then echo "Error: zig binary not found in PATH"; exit 1; fi
+          fyne-cross darwin -app-id com.mkconnect.app -arch amd64 -debug -local
+      - name: Build macOS arm64
+        run: |
+          set -x
+          if [ ! -x "$(which go)" ]; then echo "Error: go binary not found in PATH"; exit 1; fi
+          if [ ! -x "$(which fyne)" ]; then echo "Error: fyne binary not found in PATH"; exit 1; fi
+          if [ ! -x "$(which fyne-cross)" ]; then echo "Error: fyne-cross binary not found in PATH"; exit 1; fi
+          if [ ! -x "$(which zig)" ]; then echo "Error: zig binary not found in PATH"; exit 1; fi
+          fyne-cross darwin -app-id com.mkconnect.app -arch arm64 -debug -local
       - name: Rename artifacts for macOS
         run: |
           set -x
@@ -207,7 +220,7 @@ jobs:
         run: go mod download
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@latest
+          go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - name: Debug environment
         run: |
@@ -254,7 +267,7 @@ jobs:
         run: go mod download
       - name: Install fyne-cross
         run: |
-          go install github.com/fyne-io/fyne-cross@latest
+          go install github.com/fyne-io/fyne-cross@v1.5.0
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - name: Debug environment
         run: |
