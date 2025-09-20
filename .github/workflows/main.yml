@@ -152,12 +152,12 @@ jobs:
         with:
           path: dist
 
-      - name: Collect binaries
+      - name: Collect binaries for release
         run: |
           mkdir -p release
           find dist -type f -exec cp {} release/ \; || true
-          echo "Collected files:"
-          ls -lh release/ || echo "No release files found"
+          echo "Collected files for release:"
+          ls -lh release/ || echo "No files found"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -167,10 +167,10 @@ jobs:
           body: |
             🚀 MKConnect Multi-platform Build
             Includes binaries:
-            - **Linux**: amd64, 386, arm, arm64
-            - **Windows**: amd64, 386 (arm/arm64 if succeed)
-            - **macOS**: amd64, arm64 (if succeed)
-            - **Android**: amd64, arm, arm64
+            - Linux: amd64, 386, arm, arm64
+            - Windows: amd64, 386 (arm/arm64 if succeed)
+            - macOS: amd64, arm64 (if succeed)
+            - Android: amd64, arm, arm64
           files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
