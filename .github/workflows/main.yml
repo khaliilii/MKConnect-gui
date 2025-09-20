@@ -1,4 +1,4 @@
-name: MKConnect Fyne Cross Build & Release
+name: MKConnect Fyne Cross Build & Release (All OS/Arch)
 
 on:
   push:
@@ -25,12 +25,13 @@ jobs:
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - run: fyne-cross linux -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
-      - name: Rename artifacts
+      - name: Rename Linux artifacts
         run: |
           mkdir -p renamed
-          for f in fyne-cross/dist/*; do
-            ext="${f##*.}"
-            mv "$f" "renamed/MkConnect-linux-${{ matrix.arch }}.$ext"
+          for f in fyne-cross/dist/linux/${{ matrix.arch }}/*; do
+            [[ -f "$f" ]] || continue
+            filename=$(basename "$f")
+            mv "$f" "renamed/MkConnect-linux-${{ matrix.arch }}-${filename}"
           done
       - uses: actions/upload-artifact@v4
         with:
@@ -42,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: [arm, arm64, amd64, 386]
+        arch: [amd64, 386, arm, arm64]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -52,13 +53,14 @@ jobs:
           go install github.com/fyne-io/fyne-cross@latest
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - run: fyne-cross windows -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
-        continue-on-error: true   # بعضی archها ممکنه fail شن
-      - name: Rename artifacts
+        continue-on-error: true
+      - name: Rename Windows artifacts
         run: |
           mkdir -p renamed
-          for f in fyne-cross/dist/*; do
-            ext="${f##*.}"
-            mv "$f" "renamed/MkConnect-windows-${{ matrix.arch }}.$ext"
+          for f in fyne-cross/dist/windows/${{ matrix.arch }}/*; do
+            [[ -f "$f" ]] || continue
+            filename=$(basename "$f")
+            mv "$f" "renamed/MkConnect-windows-${{ matrix.arch }}-${filename}"
           done || true
       - uses: actions/upload-artifact@v4
         with:
@@ -83,12 +85,13 @@ jobs:
           echo "$HOME/go/bin" >> $GITHUB_PATH
       - run: fyne-cross darwin -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
         continue-on-error: true
-      - name: Rename artifacts
+      - name: Rename macOS artifacts
         run: |
           mkdir -p renamed
-          for f in fyne-cross/dist/*; do
-            ext="${f##*.}"
-            mv "$f" "renamed/MkConnect-macos-${{ matrix.arch }}.$ext"
+          for f in fyne-cross/dist/darwin/${{ matrix.arch }}/*; do
+            [[ -f "$f" ]] || continue
+            filename=$(basename "$f")
+            mv "$f" "renamed/MkConnect-macos-${{ matrix.arch }}-${filename}"
           done || true
       - uses: actions/upload-artifact@v4
         with:
@@ -119,12 +122,13 @@ jobs:
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/23.1.7779620" >> $GITHUB_ENV
       - run: fyne-cross android -arch=${{ matrix.arch }} -app-id=com.mkconnect.app
         continue-on-error: true
-      - name: Rename artifacts
+      - name: Rename Android artifacts
         run: |
           mkdir -p renamed
-          for f in fyne-cross/dist/*; do
-            ext="${f##*.}"
-            mv "$f" "renamed/MkConnect-android-${{ matrix.arch }}.$ext"
+          for f in fyne-cross/dist/android/${{ matrix.arch }}/*; do
+            [[ -f "$f" ]] || continue
+            filename=$(basename "$f")
+            mv "$f" "renamed/MkConnect-android-${{ matrix.arch }}-${filename}"
           done || true
       - uses: actions/upload-artifact@v4
         with:
